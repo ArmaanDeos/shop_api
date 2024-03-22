@@ -24,4 +24,9 @@ app.use(
 app.use(express.static("public"));
 app.use(cookieParser());
 
+// imports route
+import productRoutes from "./routes/product.routes.js";
+
+app.use("/api/v1", productRoutes);
+
 export { app };
