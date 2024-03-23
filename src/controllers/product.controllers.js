@@ -2,6 +2,7 @@ import { Product } from "../models/product.models.js";
 import { asyncHandler } from "../utils/AsyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
+import { ApiFeatures } from "../utils/features/ApiFeatures.js";
 
 // Create Products -- Admin
 const createProduct = asyncHandler(async (req, res) => {
@@ -36,10 +37,28 @@ const getProducts = asyncHandler(async (req, res) => {
 // Get All Products
 const getAllProducts = asyncHandler(async (req, res) => {
   try {
-    const products = await Product.find();
+    let resultPerPage = 5; // 5 products per page
+
+    // searching and filtering products...
+
+    const apifeature = new ApiFeatures(Product.find(), req.query)
+      .searchProduct() // extends from ApiFeatures
+      .filterProduct() // extends from ApiFeatures
+      .pagination(resultPerPage);
+
+    const productCount = await Product.countDocuments();
+
+    const products = await apifeature.query;
     res
       .status(200)
-      .json(new ApiResponse(200, products, "Products fetched Successfully"));
+      .json(
+        new ApiResponse(
+          200,
+          products,
+          productCount,
+          "Products fetched Successfully"
+        )
+      );
   } catch (error) {
     res
       .status(500)
