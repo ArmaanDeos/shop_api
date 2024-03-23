@@ -6,7 +6,7 @@ const generateAccessToken = (user, statusCode, res) => {
   // cookies options --
   const options = {
     expiresIn: new Date(
-      Date.now() + process.env.COOKIE_EXPIRE * 24 * 60 * 60 * 1000
+      Date.now() + process.env.JWT_COOKIE_EXPIRES * 24 * 60 * 60 * 1000
     ),
     httpOnly: true,
   };

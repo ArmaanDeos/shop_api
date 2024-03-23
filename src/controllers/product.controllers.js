@@ -7,6 +7,9 @@ import { ApiFeatures } from "../utils/features/ApiFeatures.js";
 // Create Products -- Admin
 const createProduct = asyncHandler(async (req, res) => {
   try {
+    // accessing user
+    req.body.user = req.user.id;
+
     const newProduct = await Product.create(req.body);
     res
       .status(201)
@@ -37,7 +40,7 @@ const getProducts = asyncHandler(async (req, res) => {
 // Get All Products
 const getAllProducts = asyncHandler(async (req, res) => {
   try {
-    let resultPerPage = 5; // 5 products per page
+    let resultPerPage = 6; // 5 products per page
 
     // searching and filtering products...
 
