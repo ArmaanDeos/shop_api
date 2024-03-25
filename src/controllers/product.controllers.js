@@ -180,52 +180,50 @@ const getProductReviews = asyncHandler(async (req, res) => {
 
 // Delete Product Reviews
 const deleteProductReviews = asyncHandler(async (req, res) => {
-  try {
-    const product = await Product.findById(req.query.productId);
-    if (!product) throw new ApiError(404, null, "Product Not Found");
+  const product = await Product.findById(req.query.productId);
 
-    // Filter out the review to be deleted
-    const updatedReviews = product.reviews.filter(
-      (rev) => rev._id.toString() !== req.query.reviewId.toString()
-    );
-
-    // Calculate the new average rating and number of reviews
-    const sumOfRatings = updatedReviews.reduce(
-      (acc, item) => acc + item.rating,
-      0
-    );
-    const newAverageRating = sumOfRatings / updatedReviews.length;
-    const numOfReviews = updatedReviews.length;
-
-    // Update the product with the new reviews, average rating, and number of reviews
-    const updatedProduct = await Product.findByIdAndUpdate(
-      req.query.productId,
-      {
-        $set: {
-          reviews: updatedReviews,
-          ratings: newAverageRating,
-          numOfReviews: numOfReviews,
-        },
-      },
-      {
-        new: true,
-        runValidators: true,
-        useFindAndModify: false,
-      }
-    );
-
-    res.status(200).json({
-      success: true,
-      message: "Review deleted successfully",
-      updatedProduct: updatedProduct, // Optional: Send back the updated product for verification
-    });
-  } catch (error) {
-    res
-      .status(500)
-      .json(
-        new ApiError(500, null, "Error while deleting review", error.message)
-      );
+  if (!product) {
+    return next(new ErrorHander("Product not found", 404));
   }
+
+  const reviews = product.reviews.filter(
+    (rev) => rev._id.toString() !== req.query.id.toString()
+  );
+
+  let avg = 0;
+
+  reviews.forEach((rev) => {
+    avg += rev.rating;
+  });
+
+  let ratings = 0;
+
+  if (reviews.length === 0) {
+    ratings = 0;
+  } else {
+    ratings = avg / reviews.length;
+  }
+
+  const numOfReviews = reviews.length;
+
+  await Product.findByIdAndUpdate(
+    req.query.productId,
+    {
+      reviews,
+      ratings,
+      numOfReviews,
+    },
+    {
+      new: true,
+      runValidators: true,
+      useFindAndModify: false,
+    }
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Review deleted successfully",
+  });
 });
 
 export {
