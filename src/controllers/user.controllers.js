@@ -168,4 +168,160 @@ const resetPassword = asyncHandler(async (req, res) => {
   generateAccessToken(user, 200, res);
 });
 
-export { registerUser, loginUser, logoutUser, forgetPassword, resetPassword };
+// TODO : CHANGE USER PASSWORD
+const changeUserPassword = asyncHandler(async (req, res) => {
+  // take input from user
+  const { oldPassword, newPassword } = req.body;
+  // find user
+  const user = await User.findById(req.user?.id);
+  // check password is correct or not
+  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+  if (!isPasswordCorrect) {
+    throw new ApiError(
+      400,
+      "Old password is not correct",
+      "Error while changing password"
+    );
+  }
+  if (req.body.newPassword !== req.body.confirmPassword) {
+    throw new ApiError(
+      400,
+      "Password and confirm password are not same",
+      "Error while changing password"
+    );
+  }
+  // set new password
+  user.password = newPassword;
+  // save user
+  await user.save();
+  // generate access token
+  generateAccessToken(user, 200, res);
+});
+
+// TODO : GET USER DETAILS
+const getCurrentUserDetails = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id);
+  console.log(user);
+  res.status(200).json({
+    success: true,
+    user,
+    message: "User fetched successfully",
+  });
+});
+
+// TODO : UPDATE USER PROFILE
+const updateUserDetails = asyncHandler(async (req, res) => {
+  const { name, email } = req.body;
+  if (!name || !email) {
+    throw new ApiError(
+      400,
+      "Please provide name and email",
+      "Error while updating user profile"
+    );
+  }
+  const user = await User.findByIdAndUpdate(
+    req.user.id,
+    {
+      $set: {
+        name,
+        email,
+      },
+    },
+    {
+      new: true,
+      runValidators: true,
+      useFindAndModify: false,
+    }
+  ).select("-password");
+  res.status(200).json({
+    success: true,
+    user,
+    message: "User profile updated successfully",
+  });
+});
+
+// TODO : GET ALL USERS
+const getAllUsers = asyncHandler(async (req, res) => {
+  const users = await User.find();
+  res.status(200).json({
+    success: true,
+    users,
+    message: "User fetched successfully",
+  });
+});
+
+// TODO : GET SINGLE USER
+const getSingleUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+  if (!user)
+    throw new ApiError(404, "User not found", "Error while fetching user");
+  res.status(200).json({
+    success: true,
+    user,
+    message: "User fetched successfully",
+  });
+});
+
+// TODO : UPDATE USER ROLE
+const updateUserRole = asyncHandler(async (req, res) => {
+  const { name, email, role } = req.body;
+  if (!name || !email || !role)
+    throw new ApiError(
+      400,
+      "All fields are required",
+      "Error while updating user role"
+    );
+
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    {
+      $set: {
+        name,
+        email,
+        role,
+      },
+    },
+    {
+      new: true,
+      runValidators: true,
+      useFindAndModify: false,
+    }
+  ).select("-password");
+
+  if (!user)
+    throw new ApiError(404, "User not found", "Error while updating user role");
+
+  res.status(200).json({
+    success: true,
+    user,
+    message: "User role updated successfully",
+  });
+});
+
+// TODO : DELETE USER
+const deleteUser = asyncHandler(async (req, res) => {
+  const user = await User.findByIdAndDelete(req.params.id);
+  if (!user)
+    throw new ApiError(404, "User not found", "Error while deleting user");
+
+  // await user.remove();
+  res.status(200).json({
+    success: true,
+    message: "User deleted successfully",
+  });
+});
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  forgetPassword,
+  resetPassword,
+  getCurrentUserDetails,
+  changeUserPassword,
+  updateUserDetails,
+  getAllUsers,
+  getSingleUser,
+  updateUserRole,
+  deleteUser,
+};

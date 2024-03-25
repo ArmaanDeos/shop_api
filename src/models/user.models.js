@@ -22,6 +22,7 @@ const userSchema = new Schema(
       type: String,
       required: [true, "Please enter password"],
       minLength: [8, "Password should be greater than 8 characters"],
+      // select: false,
     },
 
     avatar: {
