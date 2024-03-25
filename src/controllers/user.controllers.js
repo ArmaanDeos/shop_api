@@ -4,6 +4,8 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiFeatures } from "../utils/features/ApiFeatures.js";
 import { generateAccessToken } from "../utils/jwt/jwt.js";
+import { sendEmail } from "../utils/sendEmail.js";
+import crypto from "crypto";
 
 // TODO : Register User
 const registerUser = asyncHandler(async (req, res) => {
@@ -86,4 +88,84 @@ const logoutUser = asyncHandler(async (req, res) => {
   });
 });
 
-export { registerUser, loginUser, logoutUser };
+// TODO : FORGET PASSWORD
+const forgetPassword = asyncHandler(async (req, res) => {
+  // find user with email
+  const user = await User.findOne({ email: req.body.email });
+  if (!user)
+    throw new ApiError(404, "User not found", "Error while reseting password");
+
+  // get resetPasswordToken
+  const resetToken = user.getPasswordResetToken();
+  // save user
+  await user.save({ validateBeforeSave: false });
+
+  // create url for reset password
+  const resetPasswordUrl = `${req.protocol}://${req.get("host")}/api/v1/password/reset/${resetToken}`;
+
+  // message for mail
+  const message = `Your password reset token is :- \n\n ${resetPasswordUrl} \n\n If you have not requested this email then, please ignore it.`;
+
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: "rymo shop Password Recovery",
+      message,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Email sent to ${user.email} successfully`,
+    });
+  } catch (error) {
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save({ validateBeforeSave: false });
+    throw new ApiError(500, error.message, "Error while reseting password");
+  }
+});
+
+// TODO : RESET PASSWORD
+const resetPassword = asyncHandler(async (req, res) => {
+  // create hash
+  const resetPasswordToken = crypto
+    .createHash("sha256")
+    .update(req.params.token) // passing reset token from url
+    .digest("hex");
+
+  // find user and pass reset token
+  const user = await User.findOne({
+    resetPasswordToken,
+    resetPasswordExpire: { $gt: Date.now() },
+  });
+
+  // check for user
+  if (!user)
+    throw new ApiError(
+      400,
+      "Invalid token or Token has been expired",
+      "Error while reseting password"
+    );
+
+  // check new password and confierm password same or not
+  if (req.body.password !== req.body.confirmPassword) {
+    throw new ApiError(
+      400,
+      "Password and confirm password are not same",
+      "Error while reseting password"
+    );
+  }
+
+  // if all ok then set new password
+  user.password = req.body.password;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpire = undefined;
+
+  // at last save the user
+  await user.save();
+
+  // Generate access token for login user
+  generateAccessToken(user, 200, res);
+});
+
+export { registerUser, loginUser, logoutUser, forgetPassword, resetPassword };
