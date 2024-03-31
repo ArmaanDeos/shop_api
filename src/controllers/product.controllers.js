@@ -40,7 +40,7 @@ const getProducts = asyncHandler(async (req, res) => {
 // Get All Products
 const getAllProducts = asyncHandler(async (req, res) => {
   try {
-    let resultPerPage = 6; // 5 products per page
+    let resultPerPage = 8; // 5 products per page
 
     // searching and filtering products...
 
