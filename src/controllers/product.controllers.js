@@ -40,16 +40,17 @@ const getProducts = asyncHandler(async (req, res) => {
 // Get All Products
 const getAllProducts = asyncHandler(async (req, res) => {
   try {
-    let resultPerPage = 8; // 5 products per page
+    const resultPerPage = 8; // 8 products per page
+
+    const productCount = await Product.countDocuments();
 
     // searching and filtering products...
 
     const apifeature = new ApiFeatures(Product.find(), req.query)
-      .searchProduct() // extends from ApiFeatures
-      .filterProduct() // extends from ApiFeatures
-      .pagination(resultPerPage);
+      .searchProduct()
+      .filterProduct();
 
-    const productCount = await Product.countDocuments();
+    apifeature.pagination(resultPerPage);
 
     const products = await apifeature.query;
     res
@@ -59,6 +60,7 @@ const getAllProducts = asyncHandler(async (req, res) => {
           200,
           products,
           productCount,
+          resultPerPage,
           "Products fetched Successfully"
         )
       );
